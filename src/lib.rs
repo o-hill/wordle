@@ -55,6 +55,7 @@ impl Correctness {
     fn compute(answer: &str, guess: &str) -> [Self; 5] {
         assert_eq!(answer.len(), 5);
         assert_eq!(guess.len(), 5);
+
         let mut c = [Correctness::Wrong; 5];
         for (i, (a, g)) in answer.chars().zip(guess.chars()).enumerate() {
             if a == g {
@@ -63,8 +64,8 @@ impl Correctness {
         }
 
         let mut used = [false; 5];
-        for (i, c) in c.iter().enumerate() {
-            if *c == Correctness::Correct {
+        for (i, &c) in c.iter().enumerate() {
+            if c == Correctness::Correct {
                 used[i] = true;
             }
         }

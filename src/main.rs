@@ -2,7 +2,7 @@ use std::usize;
 
 use clap::Parser;
 use wordle::{
-    algorithms::{allocs::Allocs, Naive},
+    algorithms::{allocs::Allocs, vecrem::VecRem, Naive},
     Guesser,
 };
 
@@ -21,6 +21,7 @@ struct Args {
 enum Implementation {
     Naive,
     Allocs,
+    Vecrem,
 }
 
 fn main() {
@@ -29,6 +30,7 @@ fn main() {
     match args.implementation {
         Implementation::Naive => play(Naive::new, args.max),
         Implementation::Allocs => play(Allocs::new, args.max),
+        Implementation::Vecrem => play(VecRem::new, args.max),
     }
 }
 

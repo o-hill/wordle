@@ -1,16 +1,16 @@
-use std::{borrow::Cow, collections::HashMap, ops::Neg};
+use std::{borrow::Cow, ops::Neg};
 
 use crate::{Correctness, Guess, Guesser, DICTIONARY};
 
 #[derive(Default)]
-pub struct Allocs {
-    remaining: HashMap<&'static str, usize>,
+pub struct VecRem {
+    remaining: Vec<(&'static str, usize)>,
 }
 
-impl Allocs {
+impl VecRem {
     pub fn new() -> Self {
         Self {
-            remaining: HashMap::from_iter(DICTIONARY.lines().map(|line| {
+            remaining: Vec::from_iter(DICTIONARY.lines().map(|line| {
                 let (word, count) = line
                     .split_once(' ')
                     .expect("every line is `word frequency`");
@@ -29,21 +29,21 @@ struct Candidate {
     goodness: f64,
 }
 
-impl Guesser for Allocs {
+impl Guesser for VecRem {
     fn guess(&mut self, history: &[crate::Guess]) -> String {
         let mut best: Option<Candidate> = None;
 
         if let Some(last) = history.last() {
-            self.remaining.retain(|word, _count| last.matches(word));
+            self.remaining.retain(|(word, _count)| last.matches(word));
         }
 
         if history.is_empty() {
             return "tares".to_string();
         }
 
-        let remaining_count: usize = self.remaining.iter().map(|(_, &count)| count).sum();
+        let remaining_count: usize = self.remaining.iter().map(|&(_, count)| count).sum();
 
-        for (&word, _) in &self.remaining {
+        for &(word, _) in &self.remaining {
             let mut sum = 0.0;
             for pattern in Correctness::patterns() {
                 // Considers guessing this word and computes how much
@@ -51,7 +51,7 @@ impl Guesser for Allocs {
                 // including the likelihood of the constituents)
                 // we will have gained from the guess.
                 let mut in_pattern_total = 0;
-                for (candidate, &count) in &self.remaining {
+                for (candidate, count) in &self.remaining {
                     let g = Guess {
                         word: Cow::Borrowed(word),
                         mask: pattern,
