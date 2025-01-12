@@ -104,86 +104,17 @@ pub struct Guess<'a> {
     mask: [Correctness; 5],
 }
 
+/// tares -> [W C M M W]
+/// baers
+/// baers is answer, tares mask is [W C M M W]
+/// quick
+/// quick is answer, tares mask is [W W W W W]
+/// works because for anything that matches the current mask,
+/// the last guess must have received its correctness value.
+
 impl Guess<'_> {
     fn matches(&self, word: &str) -> bool {
-        assert_eq!(self.word.len(), 5);
-        assert_eq!(word.len(), 5);
-
-        let gchars = self.word.as_bytes();
-        let wchars = word.as_bytes();
-
-        let mut used = [false; 5];
-        for (i, ((g, &m), w)) in self
-            .word
-            .bytes()
-            .zip(self.mask.iter())
-            .zip(word.bytes())
-            .enumerate()
-        {
-            if m == Correctness::Correct {
-                if g != w {
-                    return false;
-                } else {
-                    used[i] = true;
-                    continue;
-                }
-            }
-        }
-        for (i, (w, &m)) in word.bytes().zip(&self.mask).enumerate() {
-            if m == Correctness::Correct {
-                continue;
-            }
-
-            let mut plausible = true;
-            if self
-                .word
-                .bytes()
-                .zip(&self.mask)
-                .enumerate()
-                .any(|(j, (g, m))| {
-                    if g != w {
-                        return false;
-                    }
-                    // This position has already been used to support a charcter.
-                    if used[j] {
-                        return false;
-                    }
-                    // We're looking at an `w` in `word` and have found an `w` in the previous guess.
-                    // The color of that previous `w` will tell us if this `w` _might_ be okay.
-                    match m {
-                        Correctness::Correct => unreachable!(
-                            "all correct guesses should have resulted in return or be used"
-                        ),
-                        Correctness::Misplaced if j == i => {
-                            // `w` was yellow in this same position last time around, which means that
-                            // `word` cannot be the answer.
-                            plausible = false;
-                            false
-                        }
-                        Correctness::Misplaced => {
-                            // `w` was yellow in this same position last time around, which means that
-                            // `word` cannot be the answer.
-                            used[j] = true;
-                            true
-                        }
-                        Correctness::Wrong => {
-                            plausible = false;
-                            false
-                        }
-                    }
-                })
-                && plausible
-            {
-                // The character `w` was yellow in the previous guess.
-                assert!(plausible);
-            } else if !plausible {
-                return false;
-            } else {
-                // We have no information about character `w` so `word` might still match.
-            }
-        }
-
-        true
+        Correctness::compute(word, &self.word) == self.mask
     }
 }
 
@@ -253,11 +184,12 @@ mod tests {
             check!("baaaa" + [W C M W W] allows "aaccc");
             check!("baaaa" + [W C M W W] disallows "caacc");
             check!("abcde" + [W W W W W] disallows "bcdea");
+            check!("baaaa" + [W C M W W] allows "aaccc");
         }
 
         #[test]
         fn debug() {
-            check!("baaaa" + [W C M W W] allows "aaccc");
+            check!("tares" + [W M M W W] disallows "brink");
         }
     }
 
