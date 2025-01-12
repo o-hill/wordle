@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{borrow::Cow, collections::HashSet};
 
 pub mod algorithms;
 
@@ -33,7 +33,7 @@ impl Wordle {
 
             let correctness = Correctness::compute(answer, guess.as_str());
             history.push(Guess {
-                word: guess,
+                word: Cow::Owned(guess),
                 mask: correctness,
             });
         }
@@ -99,22 +99,25 @@ impl Correctness {
     }
 }
 
-pub struct Guess {
-    word: String,
+pub struct Guess<'a> {
+    word: Cow<'a, str>,
     mask: [Correctness; 5],
 }
 
-impl Guess {
+impl Guess<'_> {
     fn matches(&self, word: &str) -> bool {
         assert_eq!(self.word.len(), 5);
         assert_eq!(word.len(), 5);
 
+        let gchars = self.word.as_bytes();
+        let wchars = word.as_bytes();
+
         let mut used = [false; 5];
         for (i, ((g, &m), w)) in self
             .word
-            .chars()
+            .bytes()
             .zip(self.mask.iter())
-            .zip(word.chars())
+            .zip(word.bytes())
             .enumerate()
         {
             if m == Correctness::Correct {
@@ -126,7 +129,7 @@ impl Guess {
                 }
             }
         }
-        for (i, (w, &m)) in word.chars().zip(&self.mask).enumerate() {
+        for (i, (w, &m)) in word.bytes().zip(&self.mask).enumerate() {
             if m == Correctness::Correct {
                 continue;
             }
@@ -134,7 +137,7 @@ impl Guess {
             let mut plausible = true;
             if self
                 .word
-                .chars()
+                .bytes()
                 .zip(&self.mask)
                 .enumerate()
                 .any(|(j, (g, m))| {
@@ -220,11 +223,12 @@ mod tests {
 
     mod guess_matcher {
         use crate::Guess;
+        use std::borrow::Cow;
 
         macro_rules! check {
             ($prev:literal + [$($mask:tt)+] allows $next:literal) => {
                 assert!(Guess {
-                    word: $prev.to_string(),
+                    word: Cow::Owned($prev.to_string()),
                     mask: mask![$($mask )+]
                 }
                 .matches($next));
@@ -232,7 +236,7 @@ mod tests {
 
             ($prev:literal + [$($mask:tt)+] disallows $next:literal) => {
                 assert!(!Guess {
-                    word: $prev.to_string(),
+                    word: Cow::Owned($prev.to_string()),
                     mask: mask![$($mask )+]
                 }
                 .matches($next))
